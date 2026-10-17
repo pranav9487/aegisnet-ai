@@ -1,0 +1,52 @@
+{
+  "nodes": [
+    {
+      "id": "172.28.0.1",
+      "hostname": "aegisnet-gateway",
+      "role": "GATEWAY",
+      "mac": "02:42:ac:1c:00:01",
+      "can_block_ip": false,
+      "criticality": "HIGH"
+    },
+    {
+      "id": "172.28.0.10",
+      "hostname": "victim-client",
+      "role": "CLIENT",
+      "mac": "02:42:ac:1c:00:0a",
+      "can_block_ip": false,
+      "criticality": "HIGH"
+    },
+    {
+      "id": "172.28.0.20",
+      "hostname": "target-server",
+      "role": "SERVER",
+      "mac": "02:42:ac:1c:00:14",
+      "can_block_ip": false,
+      "criticality": "HIGH"
+    },
+    {
+      "id": "172.28.0.2",
+      "hostname": "blue-ai-defender",
+      "role": "DEFENDER",
+      "mac": "02:42:ac:1c:00:02",
+      "can_block_ip": false,
+      "criticality": "HIGH"
+    },
+    {
+      "id": "172.28.0.66",
+      "hostname": "red-attacker",
+      "role": "UNTRUSTED",
+      "mac": "02:42:ac:1c:00:42",
+      "can_block_ip": true,
+      "criticality": "LOW"
+    }
+  ],
+  "edges": [
+    {"src": "172.28.0.10", "dst": "172.28.0.20", "label": "http-workload"},
+    {"src": "172.28.0.10", "dst": "172.28.0.20", "label": "udp-heartbeat"},
+    {"src": "172.28.0.66", "dst": "172.28.0.20", "label": "attack-path"},
+    {"src": "172.28.0.2",  "dst": "172.28.0.10", "label": "monitor"},
+    {"src": "172.28.0.2",  "dst": "172.28.0.20", "label": "monitor"},
+    {"src": "172.28.0.2",  "dst": "172.28.0.66", "label": "enforce"}
+  ]
+}

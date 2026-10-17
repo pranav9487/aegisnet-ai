@@ -1,0 +1,105 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "AegisNetAnomalyAlert-v1",
+  "title": "AegisNet Anomaly Alert",
+  "description": "Schema for structured alerts emitted by the AegisNet packet sensor.",
+  "type": "object",
+  "required": [
+    "alert_id",
+    "timestamp_utc",
+    "detection_engine",
+    "severity",
+    "layer2_state",
+    "layer4_state",
+    "entropy_metrics"
+  ],
+  "properties": {
+    "alert_id": {
+      "type": "string",
+      "pattern": "^ALERT-[A-Z0-9]+-[0-9a-f]{8}$",
+      "description": "Unique alert identifier, e.g. ALERT-ARP-a1b2c3d4"
+    },
+    "timestamp_utc": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 UTC timestamp of detection"
+    },
+    "detection_engine": {
+      "type": "string",
+      "enum": ["ARP_INVARIANT", "TCP_SEQUENCE_DRIFT", "ENTROPY_SPIKE", "DUPLICATE_ACK"],
+      "description": "Which invariant triggered this alert"
+    },
+    "severity": {
+      "type": "string",
+      "enum": ["CRITICAL", "HIGH", "MEDIUM", "LOW"],
+      "description": "Assessed threat severity"
+    },
+    "layer2_state": {
+      "type": "object",
+      "required": ["observed_mac", "expected_mac", "claimed_ip", "delta_arp"],
+      "properties": {
+        "observed_mac": {
+          "type": "string",
+          "pattern": "^([0-9a-f]{2}:){5}[0-9a-f]{2}$"
+        },
+        "expected_mac": {
+          "type": "string",
+          "pattern": "^([0-9a-f]{2}:){5}[0-9a-f]{2}$"
+        },
+        "claimed_ip": {
+          "type": "string",
+          "format": "ipv4"
+        },
+        "delta_arp": {
+          "type": "integer",
+          "enum": [0, 1],
+          "description": "1 if MAC binding changed (anomaly), 0 if stable"
+        }
+      },
+      "additionalProperties": false
+    },
+    "layer4_state": {
+      "type": "object",
+      "required": ["protocol", "delta_seq", "duplicate_acks"],
+      "properties": {
+        "protocol": {
+          "type": "string",
+          "enum": ["TCP", "UDP", "ARP", "ICMP"]
+        },
+        "src_ip": { "type": "string", "format": "ipv4" },
+        "dst_ip": { "type": "string", "format": "ipv4" },
+        "src_port": { "type": "integer", "minimum": 0, "maximum": 65535 },
+        "dst_port": { "type": "integer", "minimum": 0, "maximum": 65535 },
+        "delta_seq": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Absolute TCP sequence number drift |S_observed - S_expected|"
+        },
+        "duplicate_acks": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Count of duplicate ACKs observed in this flow"
+        }
+      },
+      "additionalProperties": false
+    },
+    "entropy_metrics": {
+      "type": "object",
+      "required": ["shannon_entropy", "entropy_delta_pct"],
+      "properties": {
+        "shannon_entropy": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 8.0,
+          "description": "Shannon entropy H(X) of the payload byte distribution"
+        },
+        "entropy_delta_pct": {
+          "type": "number",
+          "description": "Percentage change in entropy vs. baseline (>40% triggers alert)"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

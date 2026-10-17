@@ -1,0 +1,101 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "AegisNetDefensePolicy-v1",
+  "title": "AegisNet Defense Policy",
+  "description": "Schema for the structured JSON defense policy emitted by Agent 3 (Command Compiler) and consumed by the enforcer.",
+  "type": "object",
+  "required": [
+    "policy_id",
+    "alert_ref",
+    "target_attacker_mac",
+    "static_arp_bindings",
+    "mac_isolation",
+    "ipsec_enforcement",
+    "ttl_seconds",
+    "confidence"
+  ],
+  "properties": {
+    "policy_id": {
+      "type": "string",
+      "pattern": "^POL-[A-Z0-9]+-[0-9a-f]{8}$",
+      "description": "Unique policy identifier"
+    },
+    "alert_ref": {
+      "type": "string",
+      "description": "alert_id of the triggering AnomalyAlert"
+    },
+    "target_attacker_mac": {
+      "type": "string",
+      "pattern": "^([0-9a-f]{2}:){5}[0-9a-f]{2}$",
+      "description": "Hardware MAC address of the attacker — NEVER the spoofed victim IP"
+    },
+    "static_arp_bindings": {
+      "type": "array",
+      "description": "Static ARP entries to enforce (arp -s) to restore correct bindings",
+      "items": {
+        "type": "object",
+        "required": ["ip_address", "mac_address"],
+        "properties": {
+          "ip_address": { "type": "string", "format": "ipv4" },
+          "mac_address": {
+            "type": "string",
+            "pattern": "^([0-9a-f]{2}:){5}[0-9a-f]{2}$"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "mac_isolation": {
+      "type": "object",
+      "required": ["drop_attacker_mac", "use_ebtables"],
+      "properties": {
+        "drop_attacker_mac": { "type": "boolean" },
+        "use_ebtables": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    },
+    "ipsec_enforcement": {
+      "type": "object",
+      "required": [
+        "apply_ipsec",
+        "mode",
+        "cipher",
+        "spi_client_to_server",
+        "spi_server_to_client",
+        "key_hex"
+      ],
+      "properties": {
+        "apply_ipsec": { "type": "boolean" },
+        "mode": { "type": "string", "enum": ["transport", "tunnel"] },
+        "cipher": { "type": "string", "enum": ["aes-gcm-256"] },
+        "spi_client_to_server": {
+          "type": "integer",
+          "description": "SPI for inbound SA (decimal). Example: 4097 (0x1001)"
+        },
+        "spi_server_to_client": {
+          "type": "integer",
+          "description": "SPI for outbound SA (decimal). Example: 4098 (0x1002)"
+        },
+        "key_hex": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{72}$",
+          "description": "AES-256-GCM key+salt: 64 hex chars (32 bytes key) + 8 hex chars (4 bytes salt) = 72 chars total"
+        }
+      },
+      "additionalProperties": false
+    },
+    "ttl_seconds": {
+      "type": "integer",
+      "minimum": 30,
+      "maximum": 3600,
+      "description": "How long to keep the policy active before auto-expiry"
+    },
+    "confidence": {
+      "type": "number",
+      "minimum": 0.0,
+      "maximum": 1.0,
+      "description": "Agent confidence score for this policy (θ)"
+    }
+  },
+  "additionalProperties": false
+}

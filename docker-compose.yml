@@ -1,0 +1,94 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# AegisNet-AI Cyber-Range
+# 4-node isolated subnet: 172.28.0.0/24
+# ──────────────────────────────────────────────────────────────────────────────
+
+networks:
+  aegisnet-bridge:
+    name: aegisnet-bridge
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/24
+          gateway: 172.28.0.1
+
+services:
+
+  # ── Victim Client ─────────────────────────────────────────────────────────
+  victim-client:
+    container_name: victim-client
+    build:
+      context: .
+      dockerfile: docker/client/Dockerfile
+    mac_address: "02:42:ac:1c:00:0a"
+    networks:
+      aegisnet-bridge:
+        ipv4_address: 172.28.0.10
+    volumes:
+      - ./src:/src:ro
+    environment:
+      - SERVER_HOST=172.28.0.20
+      - SERVER_PORT=8080
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    restart: unless-stopped
+
+  # ── Target Server ─────────────────────────────────────────────────────────
+  target-server:
+    container_name: target-server
+    build:
+      context: .
+      dockerfile: docker/server/Dockerfile
+    mac_address: "02:42:ac:1c:00:14"
+    networks:
+      aegisnet-bridge:
+        ipv4_address: 172.28.0.20
+    volumes:
+      - ./src:/src:ro
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    restart: unless-stopped
+
+  # ── Red Attacker ──────────────────────────────────────────────────────────
+  red-attacker:
+    container_name: red-attacker
+    build:
+      context: .
+      dockerfile: docker/attacker/Dockerfile
+    mac_address: "02:42:ac:1c:00:42"
+    networks:
+      aegisnet-bridge:
+        ipv4_address: 172.28.0.66
+    volumes:
+      - ./attacks:/attacks:ro
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    restart: unless-stopped
+
+  # ── Blue AI Defender ──────────────────────────────────────────────────────
+  blue-ai-defender:
+    container_name: blue-ai-defender
+    build:
+      context: .
+      dockerfile: docker/defender/Dockerfile
+    mac_address: "02:42:ac:1c:00:02"
+    networks:
+      aegisnet-bridge:
+        ipv4_address: 172.28.0.2
+    volumes:
+      - ./src:/src:ro
+      - ./schemas:/schemas:ro
+      - ./data:/data
+      - ./logs:/logs
+      - ./.env:/app/.env:ro
+    env_file:
+      - .env
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    # Required for ip xfrm / ebtables / arptables kernel operations
+    privileged: true
+    restart: unless-stopped
