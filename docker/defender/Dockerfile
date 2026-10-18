@@ -8,6 +8,7 @@ RUN apt-get update && apt-get install -y \
     iptables \
     net-tools \
     tcpdump \
+    procps \
     curl \
     libpcap-dev \
     gcc \

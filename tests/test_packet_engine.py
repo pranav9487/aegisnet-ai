@@ -77,6 +77,41 @@ class TestEntropyCalculation:
         delta = compute_entropy_delta_pct(baseline=8.0, current=6.0)
         assert abs(delta - (-25.0)) < 1e-3, f"Expected -25.0%, got {delta}"
 
+    def test_entropy_spike_alert_delta_seq_zero(self):
+        """ENTROPY_SPIKE alert must record delta_seq == 0 (Bug 1 fix)."""
+        from scapy.layers.inet import IP, TCP
+        from scapy.layers.l2 import Ether
+        from scapy.packet import Raw
+
+        fired: list = []
+        engine = PacketEngine(alert_callback=lambda a: fired.append(a))
+
+        # Packet 1 establishes baseline entropy (1.0 bit/byte)
+        p1 = (
+            Ether()
+            / IP(src="172.28.0.10", dst="172.28.0.20")
+            / TCP(sport=50000, dport=8080, flags="PA", seq=1000, ack=1)
+            / Raw(load=bytes([0x00, 0xFF] * 50))
+        )
+        engine.process_packet(p1)
+
+        # Packet 2 has uniform random-like distribution over all 256 bytes (8.0 bits/byte)
+        # This causes a 700% jump in entropy (>40% threshold)
+        p2 = (
+            Ether()
+            / IP(src="172.28.0.10", dst="172.28.0.20")
+            / TCP(sport=50000, dport=8080, flags="PA", seq=1100, ack=1)
+            / Raw(load=bytes(range(256)))
+        )
+        engine.process_packet(p2)
+
+        assert len(fired) >= 1, "Expected ENTROPY_SPIKE alert to fire"
+        alert = fired[-1]
+        assert alert["detection_engine"] == "ENTROPY_SPIKE"
+        assert alert["layer4_state"]["delta_seq"] == 0, (
+            f"Expected delta_seq=0 for ENTROPY_SPIKE, got {alert['layer4_state']['delta_seq']}"
+        )
+
 
 # Alias so pytest collects it under the exact name the roadmap expects
 def test_entropy_calculation():
@@ -89,6 +124,7 @@ def test_entropy_calculation():
     t.test_entropy_delta_pct_baseline_zero()
     t.test_entropy_delta_pct_increase()
     t.test_entropy_delta_pct_decrease()
+    t.test_entropy_spike_alert_delta_seq_zero()
 
 
 # ---------------------------------------------------------------------------
@@ -273,8 +309,19 @@ class TestTcpSequenceDrift:
         engine.process_packet(seed_pkt)
         assert len(fired) == 0, "No alert expected for first legitimate packet"
 
+        expected_seq = 1000 + len(b"GET / HTTP/1.1\r\n\r\n")
+
+        # Send 3 duplicate ACKs (4 pure ACKs with identical ack value) to satisfy the gate
+        for _ in range(4):
+            ack_pkt = (
+                Ether()
+                / IP(src="172.28.0.10", dst="172.28.0.20")
+                / TCP(sport=54321, dport=8080, flags="A", seq=expected_seq, ack=1)
+            )
+            engine.process_packet(ack_pkt)
+
         # Inject a forged packet with a wildly wrong sequence number
-        forged_seq = 1000 + 80_000
+        forged_seq = expected_seq + 80_000
         forged_pkt = (
             Ether()
             / IP(src="172.28.0.10", dst="172.28.0.20")
@@ -283,9 +330,9 @@ class TestTcpSequenceDrift:
         )
         engine.process_packet(forged_pkt)
 
-        assert len(fired) == 1, f"Expected 1 alert, got {len(fired)}"
-        alert = fired[0]
-        assert alert["detection_engine"] == "TCP_SEQUENCE_DRIFT"
+        drift_alerts = [a for a in fired if a["detection_engine"] == "TCP_SEQUENCE_DRIFT"]
+        assert len(drift_alerts) == 1, f"Expected 1 TCP_SEQUENCE_DRIFT alert, got {len(drift_alerts)}"
+        alert = drift_alerts[0]
         assert alert["layer4_state"]["protocol"] == "TCP"
         assert alert["layer4_state"]["delta_seq"] > SEQ_DRIFT_THRESHOLD
 
@@ -328,3 +375,115 @@ def test_tcp_sequence_drift():
     t.test_engine_fires_alert_on_seq_drift()
     t.test_engine_does_not_fire_on_normal_tcp()
     t.test_canonical_flow_key_symmetric()
+
+
+def test_seq_drift_same_direction_65k_jump():
+    """Two same-direction packets with a 65,000-byte jump plus 3 duplicate ACKs produce exactly one TCP_SEQUENCE_DRIFT."""
+    from scapy.layers.inet import IP, TCP
+    from scapy.layers.l2 import Ether
+    from scapy.packet import Raw
+
+    fired: list = []
+    engine = PacketEngine(alert_callback=lambda a: fired.append(a))
+
+    p1 = (
+        Ether()
+        / IP(src="172.28.0.10", dst="172.28.0.20")
+        / TCP(sport=40000, dport=8080, flags="PA", seq=10000, ack=1)
+        / Raw(load=b"FIRST")
+    )
+    engine.process_packet(p1)
+    assert len(fired) == 0
+
+    expected_seq = 10000 + len(b"FIRST")
+
+    # Send 3 duplicate ACKs (4 pure ACKs with identical ack value)
+    for _ in range(4):
+        ack_pkt = (
+            Ether()
+            / IP(src="172.28.0.10", dst="172.28.0.20")
+            / TCP(sport=40000, dport=8080, flags="A", seq=expected_seq, ack=1)
+        )
+        engine.process_packet(ack_pkt)
+
+    forged_seq = expected_seq + 65000
+    p2 = (
+        Ether()
+        / IP(src="172.28.0.10", dst="172.28.0.20")
+        / TCP(sport=40000, dport=8080, flags="PA", seq=forged_seq, ack=1)
+        / Raw(load=b"SECOND")
+    )
+    engine.process_packet(p2)
+
+    drift_alerts = [a for a in fired if a["detection_engine"] == "TCP_SEQUENCE_DRIFT"]
+    assert len(drift_alerts) == 1, f"Expected exactly 1 TCP_SEQUENCE_DRIFT alert, got {len(drift_alerts)}"
+    alert = drift_alerts[0]
+    assert alert["layer4_state"]["protocol"] == "TCP"
+    assert alert["layer4_state"]["delta_seq"] == 65000
+    assert alert["layer4_state"]["delta_seq"] > SEQ_DRIFT_THRESHOLD
+
+
+def test_entropy_spike_delta_seq_is_zero():
+    """An ENTROPY_SPIKE alert has delta_seq == 0."""
+    from scapy.layers.inet import IP, TCP
+    from scapy.layers.l2 import Ether
+    from scapy.packet import Raw
+
+    fired: list = []
+    engine = PacketEngine(alert_callback=lambda a: fired.append(a))
+
+    p1 = (
+        Ether()
+        / IP(src="172.28.0.10", dst="172.28.0.20")
+        / TCP(sport=50000, dport=8080, flags="PA", seq=1000, ack=1)
+        / Raw(load=bytes([0x00, 0xFF] * 50))
+    )
+    engine.process_packet(p1)
+
+    p2 = (
+        Ether()
+        / IP(src="172.28.0.10", dst="172.28.0.20")
+        / TCP(sport=50000, dport=8080, flags="PA", seq=1100, ack=1)
+        / Raw(load=bytes(range(256)))
+    )
+    engine.process_packet(p2)
+
+    entropy_alerts = [a for a in fired if a["detection_engine"] == "ENTROPY_SPIKE"]
+    assert len(entropy_alerts) >= 1, "Expected ENTROPY_SPIKE alert to fire"
+    for alert in entropy_alerts:
+        assert alert["layer4_state"]["delta_seq"] == 0, (
+            f"Expected delta_seq=0 for ENTROPY_SPIKE, got {alert['layer4_state']['delta_seq']}"
+        )
+
+
+def test_no_drift_without_dupacks():
+    """A 65,000-byte jump with no duplicate ACKs produces no TCP_SEQUENCE_DRIFT."""
+    from scapy.layers.inet import IP, TCP
+    from scapy.layers.l2 import Ether
+    from scapy.packet import Raw
+
+    fired: list = []
+    engine = PacketEngine(alert_callback=lambda a: fired.append(a))
+
+    p1 = (
+        Ether()
+        / IP(src="172.28.0.10", dst="172.28.0.20")
+        / TCP(sport=40000, dport=8080, flags="PA", seq=10000, ack=1)
+        / Raw(load=b"FIRST")
+    )
+    engine.process_packet(p1)
+
+    expected_seq = 10000 + len(b"FIRST")
+    forged_seq = expected_seq + 65000
+    p2 = (
+        Ether()
+        / IP(src="172.28.0.10", dst="172.28.0.20")
+        / TCP(sport=40000, dport=8080, flags="PA", seq=forged_seq, ack=1)
+        / Raw(load=b"SECOND")
+    )
+    engine.process_packet(p2)
+
+    drift_alerts = [a for a in fired if a["detection_engine"] == "TCP_SEQUENCE_DRIFT"]
+    assert len(drift_alerts) == 0, (
+        f"Expected 0 TCP_SEQUENCE_DRIFT alerts without duplicate ACKs, got {len(drift_alerts)}"
+    )

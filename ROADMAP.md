@@ -225,13 +225,16 @@ cachedir: .pytest_cache
 rootdir: /home/pranav/aegisnet-ai
 plugins: asyncio-1.4.0
 asyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
-collected 3 items                                                              
+collected 6 items
 
-tests/test_packet_engine.py::test_entropy_calculation PASSED             [ 33%]
-tests/test_packet_engine.py::test_arp_invariant_detection PASSED         [ 66%]
-tests/test_packet_engine.py::test_tcp_sequence_drift PASSED              [100%]
+tests/test_packet_engine.py::test_entropy_calculation PASSED             [ 16%]
+tests/test_packet_engine.py::test_arp_invariant_detection PASSED         [ 33%]
+tests/test_packet_engine.py::test_tcp_sequence_drift PASSED              [ 50%]
+tests/test_packet_engine.py::test_seq_drift_same_direction_65k_jump PASSED [ 66%]
+tests/test_packet_engine.py::test_entropy_spike_delta_seq_is_zero PASSED [ 83%]
+tests/test_packet_engine.py::test_no_drift_without_dupacks PASSED       [100%]
 
-============================== 3 passed in 0.14s ===============================
+============================== 6 passed in 0.15s ===============================
 ```
 
 Comparison Verdict: [x] PASS / [ ] FAIL (Loop back until all 3 tests pass)

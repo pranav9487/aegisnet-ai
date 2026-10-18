@@ -74,10 +74,9 @@ services:
     build:
       context: .
       dockerfile: docker/defender/Dockerfile
-    mac_address: "02:42:ac:1c:00:02"
-    networks:
-      aegisnet-bridge:
-        ipv4_address: 172.28.0.2
+    network_mode: "service:target-server"
+    depends_on:
+      - target-server
     volumes:
       - ./src:/src:ro
       - ./schemas:/schemas:ro
@@ -89,6 +88,5 @@ services:
     cap_add:
       - NET_ADMIN
       - NET_RAW
-    # Required for ip xfrm / ebtables / arptables kernel operations
     privileged: true
     restart: unless-stopped

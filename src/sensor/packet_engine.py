@@ -47,7 +47,8 @@ ALERT_LOG_PATH: str = "/tmp/sensor_alerts.log"
 ENTROPY_SPIKE_THRESHOLD_PCT: float = 40.0
 
 # TCP Δ_SEQ threshold: drifts above this value trigger TCP_SEQUENCE_DRIFT alert.
-SEQ_DRIFT_THRESHOLD: int = 1000
+# Set to 1460 bytes (one MSS) per design document Section 5.1.
+SEQ_DRIFT_THRESHOLD: int = 1460
 
 # Duplicate-ACK count that triggers a DUPLICATE_ACK alert.
 DUP_ACK_THRESHOLD: int = 3
@@ -346,24 +347,25 @@ class PacketEngine:
             self.tcp_streams[flow_key] = _StreamState()
 
         stream = self.tcp_streams[flow_key]
-        forward = (src_ip, src_port) <= (dst_ip, dst_port)
+
+        # TCP flag masks
+        FLAG_FIN = 0x01
+        FLAG_SYN = 0x02
+        FLAG_RST = 0x04
+        FLAG_ACK = 0x10
+
+        direction_key = (src_ip, src_port)
+        syn_offset = 1 if (flags & FLAG_SYN) else 0
 
         # ── Sequence drift (Δ_SEQ) ────────────────────────────────────────
-        if forward:
-            delta_seq, stream.fwd_next_seq = stream.compute_delta_seq(
-                seq, payload, stream.fwd_next_seq
-            )
+        if direction_key not in stream.next_seq:
+            stream.next_seq[direction_key] = seq + len(payload) + syn_offset
+            delta_seq = 0
         else:
-            delta_seq, stream.rev_next_seq = stream.compute_delta_seq(
-                seq, payload, stream.rev_next_seq
-            )
+            delta_seq = abs(seq - stream.next_seq[direction_key])
+            stream.next_seq[direction_key] = seq + len(payload) + syn_offset
 
         # ── Duplicate ACK detection ───────────────────────────────────────
-        FLAG_ACK = 0x10
-        FLAG_SYN = 0x02
-        FLAG_FIN = 0x01
-        FLAG_RST = 0x04
-
         is_pure_ack = (
             (flags & FLAG_ACK) != 0
             and (flags & FLAG_SYN) == 0
@@ -372,11 +374,15 @@ class PacketEngine:
             and len(payload) == 0
         )
 
-        if is_pure_ack and ack == stream.last_ack and ack != 0:
-            stream.dup_ack_count += 1
-        else:
+        if is_pure_ack:
+            if ack == stream.last_ack and ack != 0:
+                stream.dup_ack_count += 1
+            else:
+                stream.dup_ack_count = 0
+            stream.last_ack = ack
+        elif (flags & FLAG_ACK) != 0 and ack > stream.last_ack:
             stream.dup_ack_count = 0
-        stream.last_ack = ack
+            stream.last_ack = ack
 
         # ── Entropy ───────────────────────────────────────────────────────
         entropy = compute_shannon_entropy(payload) if payload else stream.baseline_entropy
@@ -394,7 +400,10 @@ class PacketEngine:
         # ── Alert routing ─────────────────────────────────────────────────
         layer2_placeholder_mac = "00:00:00:00:00:00"
 
-        if delta_seq > self.seq_drift_threshold:
+        if (
+            delta_seq > self.seq_drift_threshold
+            and stream.dup_ack_count >= self.dup_ack_threshold
+        ):
             alert = build_alert(
                 engine="TCP_SEQUENCE_DRIFT",
                 severity="HIGH",
@@ -435,7 +444,7 @@ class PacketEngine:
                 claimed_ip=src_ip,
                 delta_arp=0,
                 protocol="TCP",
-                delta_seq=delta_seq,
+                delta_seq=0,
                 duplicate_acks=stream.dup_ack_count,
                 shannon_entropy=entropy,
                 entropy_delta_pct=delta_pct,
@@ -447,16 +456,14 @@ class _StreamState:
     """Per-flow mutable state updated on every TCP packet."""
 
     __slots__ = (
-        "fwd_next_seq",
-        "rev_next_seq",
+        "next_seq",
         "last_ack",
         "dup_ack_count",
         "baseline_entropy",
     )
 
     def __init__(self) -> None:
-        self.fwd_next_seq: int = 0   # expected next seq in forward direction
-        self.rev_next_seq: int = 0   # expected next seq in reverse direction
+        self.next_seq: Dict[Tuple[str, int], int] = {}
         self.last_ack: int = 0
         self.dup_ack_count: int = 0
         self.baseline_entropy: float = 0.0
