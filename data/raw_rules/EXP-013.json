@@ -1,0 +1,22 @@
+{
+  "rule_id": "EXP-013",
+  "attack_class": "ARP_POISON_MITM",
+  "behavior_summary": "Stealthy ARP table poisoning operating under low packet entropy baseline.",
+  "symbolic_conditions": [
+    {
+      "field": "delta_arp",
+      "op": "==",
+      "value": 1
+    },
+    {
+      "field": "payload_entropy",
+      "op": ">=",
+      "value": 0.0
+    }
+  ],
+  "forbidden_actions": [
+    "drop_victim_ip"
+  ],
+  "mandated_remediation": "ISOLATE_MAC_THEN_IPSEC",
+  "confidence_rating": 0.92
+}

@@ -1,0 +1,32 @@
+{
+  "rule_id": "EXP-040",
+  "attack_class": "BENIGN_SPIKE",
+  "behavior_summary": "Standard TLS encrypted payload burst showing high entropy with in-order sequence.",
+  "symbolic_conditions": [
+    {
+      "field": "payload_entropy",
+      "op": "<=",
+      "value": 4.5
+    },
+    {
+      "field": "delta_seq",
+      "op": "==",
+      "value": 0
+    },
+    {
+      "field": "duplicate_acks",
+      "op": "<",
+      "value": 3
+    },
+    {
+      "field": "delta_arp",
+      "op": "==",
+      "value": 0
+    }
+  ],
+  "forbidden_actions": [
+    "drop_victim_ip"
+  ],
+  "mandated_remediation": "MONITOR_ONLY",
+  "confidence_rating": 0.96
+}

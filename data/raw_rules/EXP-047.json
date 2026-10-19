@@ -1,0 +1,22 @@
+{
+  "rule_id": "EXP-047",
+  "attack_class": "BENIGN_SPIKE",
+  "behavior_summary": "Single isolated packet loss recovery with single duplicate ACK.",
+  "symbolic_conditions": [
+    {
+      "field": "duplicate_acks",
+      "op": "==",
+      "value": 1
+    },
+    {
+      "field": "delta_seq",
+      "op": "<=",
+      "value": 20
+    }
+  ],
+  "forbidden_actions": [
+    "drop_victim_ip"
+  ],
+  "mandated_remediation": "MONITOR_ONLY",
+  "confidence_rating": 0.95
+}

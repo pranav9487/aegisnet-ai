@@ -1,0 +1,22 @@
+{
+  "rule_id": "EXP-022",
+  "attack_class": "TCP_SESSION_HIJACK",
+  "behavior_summary": "Near-window TCP sequence desynchronization with consistent duplicate acknowledgments.",
+  "symbolic_conditions": [
+    {
+      "field": "delta_seq",
+      "op": ">",
+      "value": 1460
+    },
+    {
+      "field": "duplicate_acks",
+      "op": ">=",
+      "value": 3
+    }
+  ],
+  "forbidden_actions": [
+    "drop_victim_ip"
+  ],
+  "mandated_remediation": "ISOLATE_MAC_THEN_IPSEC",
+  "confidence_rating": 0.93
+}

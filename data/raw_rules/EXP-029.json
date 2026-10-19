@@ -1,0 +1,17 @@
+{
+  "rule_id": "EXP-029",
+  "attack_class": "UDP_FLOOD",
+  "behavior_summary": "High entropy UDP packet flood with randomized payload data.",
+  "symbolic_conditions": [
+    {
+      "field": "payload_entropy",
+      "op": ">",
+      "value": 7.2
+    }
+  ],
+  "forbidden_actions": [
+    "drop_victim_ip"
+  ],
+  "mandated_remediation": "RATE_LIMIT",
+  "confidence_rating": 0.94
+}

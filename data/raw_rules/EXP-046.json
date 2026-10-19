@@ -1,0 +1,32 @@
+{
+  "rule_id": "EXP-046",
+  "attack_class": "BENIGN_SPIKE",
+  "behavior_summary": "Legitimate compressed archive download exhibiting high payload entropy.",
+  "symbolic_conditions": [
+    {
+      "field": "payload_entropy",
+      "op": "<=",
+      "value": 4.5
+    },
+    {
+      "field": "delta_arp",
+      "op": "==",
+      "value": 0
+    },
+    {
+      "field": "delta_seq",
+      "op": "<=",
+      "value": 1460
+    },
+    {
+      "field": "duplicate_acks",
+      "op": "<",
+      "value": 3
+    }
+  ],
+  "forbidden_actions": [
+    "drop_victim_ip"
+  ],
+  "mandated_remediation": "MONITOR_ONLY",
+  "confidence_rating": 0.93
+}

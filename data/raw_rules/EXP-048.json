@@ -1,0 +1,32 @@
+{
+  "rule_id": "EXP-048",
+  "attack_class": "BENIGN_SPIKE",
+  "behavior_summary": "Normal DNS request/response volume spike with low payload entropy.",
+  "symbolic_conditions": [
+    {
+      "field": "payload_entropy",
+      "op": "<",
+      "value": 3.8
+    },
+    {
+      "field": "delta_seq",
+      "op": "==",
+      "value": 0
+    },
+    {
+      "field": "delta_arp",
+      "op": "==",
+      "value": 0
+    },
+    {
+      "field": "duplicate_acks",
+      "op": "<",
+      "value": 3
+    }
+  ],
+  "forbidden_actions": [
+    "drop_victim_ip"
+  ],
+  "mandated_remediation": "MONITOR_ONLY",
+  "confidence_rating": 0.94
+}

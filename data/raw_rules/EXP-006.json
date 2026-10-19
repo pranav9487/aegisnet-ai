@@ -1,0 +1,22 @@
+{
+  "rule_id": "EXP-006",
+  "attack_class": "ARP_POISON_MITM",
+  "behavior_summary": "Slow drip ARP poisoning where MAC mapping is spoofed without sequence drift.",
+  "symbolic_conditions": [
+    {
+      "field": "delta_arp",
+      "op": "==",
+      "value": 1
+    },
+    {
+      "field": "delta_seq",
+      "op": "<=",
+      "value": 10
+    }
+  ],
+  "forbidden_actions": [
+    "drop_victim_ip"
+  ],
+  "mandated_remediation": "ISOLATE_MAC_THEN_IPSEC",
+  "confidence_rating": 0.93
+}

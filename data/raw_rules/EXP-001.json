@@ -1,0 +1,17 @@
+{
+  "rule_id": "EXP-001",
+  "attack_class": "ARP_POISON_MITM",
+  "behavior_summary": "Gratuitous ARP reply binding gateway or server IP to an untrusted foreign MAC address.",
+  "symbolic_conditions": [
+    {
+      "field": "delta_arp",
+      "op": "==",
+      "value": 1
+    }
+  ],
+  "forbidden_actions": [
+    "drop_victim_ip"
+  ],
+  "mandated_remediation": "ISOLATE_MAC_THEN_IPSEC",
+  "confidence_rating": 0.95
+}

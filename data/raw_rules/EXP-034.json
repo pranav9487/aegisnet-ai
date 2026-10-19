@@ -1,0 +1,17 @@
+{
+  "rule_id": "EXP-034",
+  "attack_class": "UDP_FLOOD",
+  "behavior_summary": "Persistent UDP junk data blast with near-maximal entropy.",
+  "symbolic_conditions": [
+    {
+      "field": "payload_entropy",
+      "op": ">=",
+      "value": 7.6
+    }
+  ],
+  "forbidden_actions": [
+    "drop_victim_ip"
+  ],
+  "mandated_remediation": "RATE_LIMIT",
+  "confidence_rating": 0.95
+}

@@ -1,0 +1,32 @@
+{
+  "rule_id": "EXP-044",
+  "attack_class": "BENIGN_SPIKE",
+  "behavior_summary": "Fast retransmit recovery during momentary buffer congestion.",
+  "symbolic_conditions": [
+    {
+      "field": "duplicate_acks",
+      "op": "<",
+      "value": 3
+    },
+    {
+      "field": "delta_seq",
+      "op": "<=",
+      "value": 100
+    },
+    {
+      "field": "delta_arp",
+      "op": "==",
+      "value": 0
+    },
+    {
+      "field": "payload_entropy",
+      "op": "<=",
+      "value": 4.5
+    }
+  ],
+  "forbidden_actions": [
+    "drop_victim_ip"
+  ],
+  "mandated_remediation": "MONITOR_ONLY",
+  "confidence_rating": 0.91
+}

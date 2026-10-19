@@ -1,0 +1,22 @@
+{
+  "rule_id": "EXP-030",
+  "attack_class": "UDP_FLOOD",
+  "behavior_summary": "Volumetric UDP flood of uniform high-entropy datagrams saturating receiver.",
+  "symbolic_conditions": [
+    {
+      "field": "payload_entropy",
+      "op": ">=",
+      "value": 7.0
+    },
+    {
+      "field": "delta_arp",
+      "op": "==",
+      "value": 0
+    }
+  ],
+  "forbidden_actions": [
+    "drop_victim_ip"
+  ],
+  "mandated_remediation": "RATE_LIMIT",
+  "confidence_rating": 0.93
+}

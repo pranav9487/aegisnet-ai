@@ -1,0 +1,32 @@
+{
+  "rule_id": "EXP-039",
+  "attack_class": "BENIGN_SPIKE",
+  "behavior_summary": "Legitimate client reconnection causing minor TCP sequence adjustment.",
+  "symbolic_conditions": [
+    {
+      "field": "delta_seq",
+      "op": "<=",
+      "value": 50
+    },
+    {
+      "field": "delta_arp",
+      "op": "==",
+      "value": 0
+    },
+    {
+      "field": "duplicate_acks",
+      "op": "<",
+      "value": 3
+    },
+    {
+      "field": "payload_entropy",
+      "op": "<=",
+      "value": 4.5
+    }
+  ],
+  "forbidden_actions": [
+    "drop_victim_ip"
+  ],
+  "mandated_remediation": "MONITOR_ONLY",
+  "confidence_rating": 0.95
+}

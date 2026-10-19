@@ -1,0 +1,17 @@
+{
+  "rule_id": "EXP-008",
+  "attack_class": "ARP_POISON_MITM",
+  "behavior_summary": "Intermittent ARP spoofing probe causing MAC binding instability.",
+  "symbolic_conditions": [
+    {
+      "field": "delta_arp",
+      "op": "!=",
+      "value": 0
+    }
+  ],
+  "forbidden_actions": [
+    "drop_victim_ip"
+  ],
+  "mandated_remediation": "ISOLATE_MAC_THEN_IPSEC",
+  "confidence_rating": 0.91
+}

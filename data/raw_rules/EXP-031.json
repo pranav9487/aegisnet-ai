@@ -1,0 +1,22 @@
+{
+  "rule_id": "EXP-031",
+  "attack_class": "UDP_FLOOD",
+  "behavior_summary": "Randomized payload UDP storm targeting service ports with maximal entropy.",
+  "symbolic_conditions": [
+    {
+      "field": "payload_entropy",
+      "op": ">=",
+      "value": 7.5
+    },
+    {
+      "field": "duplicate_acks",
+      "op": "==",
+      "value": 0
+    }
+  ],
+  "forbidden_actions": [
+    "drop_victim_ip"
+  ],
+  "mandated_remediation": "RATE_LIMIT",
+  "confidence_rating": 0.95
+}

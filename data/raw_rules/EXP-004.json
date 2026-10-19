@@ -1,0 +1,22 @@
+{
+  "rule_id": "EXP-004",
+  "attack_class": "ARP_POISON_MITM",
+  "behavior_summary": "Bypassed Layer-2 mapping change with baseline payload entropy under normal HTTP traffic.",
+  "symbolic_conditions": [
+    {
+      "field": "delta_arp",
+      "op": "==",
+      "value": 1
+    },
+    {
+      "field": "payload_entropy",
+      "op": "<=",
+      "value": 5.5
+    }
+  ],
+  "forbidden_actions": [
+    "drop_victim_ip"
+  ],
+  "mandated_remediation": "ISOLATE_MAC_THEN_IPSEC",
+  "confidence_rating": 0.92
+}

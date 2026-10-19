@@ -1,0 +1,32 @@
+{
+  "rule_id": "EXP-049",
+  "attack_class": "BENIGN_SPIKE",
+  "behavior_summary": "Slight network delay jitter inducing minimal sequence offset.",
+  "symbolic_conditions": [
+    {
+      "field": "delta_seq",
+      "op": "<",
+      "value": 30
+    },
+    {
+      "field": "duplicate_acks",
+      "op": "<",
+      "value": 3
+    },
+    {
+      "field": "delta_arp",
+      "op": "==",
+      "value": 0
+    },
+    {
+      "field": "payload_entropy",
+      "op": "<=",
+      "value": 4.5
+    }
+  ],
+  "forbidden_actions": [
+    "drop_victim_ip"
+  ],
+  "mandated_remediation": "MONITOR_ONLY",
+  "confidence_rating": 0.93
+}

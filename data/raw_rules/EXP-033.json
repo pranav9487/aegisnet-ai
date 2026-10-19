@@ -1,0 +1,22 @@
+{
+  "rule_id": "EXP-033",
+  "attack_class": "UDP_FLOOD",
+  "behavior_summary": "Dense UDP datagram stream with entropy exceeding 7.1 and zero duplicate ACKs.",
+  "symbolic_conditions": [
+    {
+      "field": "payload_entropy",
+      "op": ">",
+      "value": 7.1
+    },
+    {
+      "field": "duplicate_acks",
+      "op": "==",
+      "value": 0
+    }
+  ],
+  "forbidden_actions": [
+    "drop_victim_ip"
+  ],
+  "mandated_remediation": "RATE_LIMIT",
+  "confidence_rating": 0.92
+}

@@ -1,0 +1,22 @@
+{
+  "rule_id": "EXP-037",
+  "attack_class": "UDP_FLOOD",
+  "behavior_summary": "Multi-socket UDP stream with payload entropy above baseline threshold.",
+  "symbolic_conditions": [
+    {
+      "field": "payload_entropy",
+      "op": ">",
+      "value": 6.7
+    },
+    {
+      "field": "duplicate_acks",
+      "op": "<=",
+      "value": 0
+    }
+  ],
+  "forbidden_actions": [
+    "drop_victim_ip"
+  ],
+  "mandated_remediation": "RATE_LIMIT",
+  "confidence_rating": 0.90
+}

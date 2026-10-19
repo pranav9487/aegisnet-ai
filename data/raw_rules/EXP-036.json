@@ -1,0 +1,22 @@
+{
+  "rule_id": "EXP-036",
+  "attack_class": "UDP_FLOOD",
+  "behavior_summary": "High-rate UDP burst attacking bandwidth capacity without Layer-2 alteration.",
+  "symbolic_conditions": [
+    {
+      "field": "payload_entropy",
+      "op": ">=",
+      "value": 7.3
+    },
+    {
+      "field": "delta_arp",
+      "op": "==",
+      "value": 0
+    }
+  ],
+  "forbidden_actions": [
+    "drop_victim_ip"
+  ],
+  "mandated_remediation": "RATE_LIMIT",
+  "confidence_rating": 0.94
+}

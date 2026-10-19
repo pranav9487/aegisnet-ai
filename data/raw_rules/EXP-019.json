@@ -1,0 +1,22 @@
+{
+  "rule_id": "EXP-019",
+  "attack_class": "TCP_SESSION_HIJACK",
+  "behavior_summary": "Blind TCP session injection with 65k sequence wrap jump.",
+  "symbolic_conditions": [
+    {
+      "field": "delta_seq",
+      "op": ">=",
+      "value": 50000
+    },
+    {
+      "field": "duplicate_acks",
+      "op": ">=",
+      "value": 3
+    }
+  ],
+  "forbidden_actions": [
+    "drop_victim_ip"
+  ],
+  "mandated_remediation": "ISOLATE_MAC_THEN_IPSEC",
+  "confidence_rating": 0.98
+}

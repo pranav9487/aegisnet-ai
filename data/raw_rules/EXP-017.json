@@ -1,0 +1,22 @@
+{
+  "rule_id": "EXP-017",
+  "attack_class": "TCP_SESSION_HIJACK",
+  "behavior_summary": "Severe sequence drift with high duplicate ACK count indicative of active connection takeover.",
+  "symbolic_conditions": [
+    {
+      "field": "delta_seq",
+      "op": ">",
+      "value": 5000
+    },
+    {
+      "field": "duplicate_acks",
+      "op": ">=",
+      "value": 5
+    }
+  ],
+  "forbidden_actions": [
+    "drop_victim_ip"
+  ],
+  "mandated_remediation": "ISOLATE_MAC_THEN_IPSEC",
+  "confidence_rating": 0.97
+}

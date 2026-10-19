@@ -1,0 +1,22 @@
+{
+  "rule_id": "EXP-014",
+  "attack_class": "ARP_POISON_MITM",
+  "behavior_summary": "Asymmetric ARP cache poisoning with MAC divergence and minimal sequence disruption.",
+  "symbolic_conditions": [
+    {
+      "field": "delta_arp",
+      "op": "==",
+      "value": 1
+    },
+    {
+      "field": "delta_seq",
+      "op": "<=",
+      "value": 5
+    }
+  ],
+  "forbidden_actions": [
+    "drop_victim_ip"
+  ],
+  "mandated_remediation": "ISOLATE_MAC_THEN_IPSEC",
+  "confidence_rating": 0.94
+}

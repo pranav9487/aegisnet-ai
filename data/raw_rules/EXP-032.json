@@ -1,0 +1,22 @@
+{
+  "rule_id": "EXP-032",
+  "attack_class": "UDP_FLOOD",
+  "behavior_summary": "UDP flood from rogue MAC requiring Layer-2 MAC isolation and IPsec tunnel protection.",
+  "symbolic_conditions": [
+    {
+      "field": "payload_entropy",
+      "op": ">",
+      "value": 6.8
+    },
+    {
+      "field": "delta_arp",
+      "op": "==",
+      "value": 1
+    }
+  ],
+  "forbidden_actions": [
+    "drop_victim_ip"
+  ],
+  "mandated_remediation": "ISOLATE_MAC_THEN_IPSEC",
+  "confidence_rating": 0.96
+}
