@@ -71,10 +71,10 @@ Minimum 50 rules (per `ROADMAP.md` v0.5 Step 4), spread across at least these cl
 
 ### 2.3 Execution Steps
 
-- [ ] **Step 2.3.1:** For each attack class, list every distinct parameter variant you can produce from your own attack scripts (e.g. ARP: slow drip vs. burst flood; TCP: near-window vs. far-window seq prediction).
-- [ ] **Step 2.3.2:** Draft rule JSON for each variant. You may have the agentic IDE generate a first-pass draft from the attack taxonomy already in `details_for_this_project` — but review every `symbolic_conditions` block yourself, since an incorrect condition silently breaks retrieval later with no visible error.
-- [ ] **Step 2.3.3:** Write 10–12 `BENIGN_SPIKE` rules describing traffic that looks anomalous but isn't (e.g. `delta_seq` small jump from a reconnect). These are what keep your Self-Inflicted DoS metric at 0% in the v1.0 benchmark.
-- [ ] **Step 2.3.4:** Validate every file is syntactically valid JSON and matches the schema:
+- [x] **Step 2.3.1:** For each attack class, list every distinct parameter variant you can produce from your own attack scripts (e.g. ARP: slow drip vs. burst flood; TCP: near-window vs. far-window seq prediction).
+- [x] **Step 2.3.2:** Draft rule JSON for each variant. You may have the agentic IDE generate a first-pass draft from the attack taxonomy already in `details_for_this_project` — but review every `symbolic_conditions` block yourself, since an incorrect condition silently breaks retrieval later with no visible error.
+- [x] **Step 2.3.3:** Write 10–12 `BENIGN_SPIKE` rules describing traffic that looks anomalous but isn't (e.g. `delta_seq` small jump from a reconnect). These are what keep your Self-Inflicted DoS metric at 0% in the v1.0 benchmark.
+- [x] **Step 2.3.4:** Validate every file is syntactically valid JSON and matches the schema:
   ```bash
   python3 -c "
   import json, glob, sys
@@ -87,12 +87,20 @@ Minimum 50 rules (per `ROADMAP.md` v0.5 Step 4), spread across at least these cl
   print('All rule files valid.')
   "
   ```
-- [ ] **Step 2.3.5:** Confirm count ≥ 50:
+  Actual Output:
+  ```
+  All rule files valid.
+  ```
+- [x] **Step 2.3.5:** Confirm count ≥ 50:
   ```bash
   ls data/raw_rules/*.json | wc -l
   ```
+  Actual Output:
+  ```
+  50
+  ```
 
-**Comparison Verdict:** [ ] PASS / [ ] FAIL (loop back if count < 50 or any file fails schema validation)
+**Comparison Verdict:** [x] PASS / [ ] FAIL (loop back if count < 50 or any file fails schema validation)
 
 ---
 
@@ -115,20 +123,31 @@ Minimum 50 rules (per `ROADMAP.md` v0.5 Step 4), spread across at least these cl
 
 ### 3.2 Execution Steps
 
-- [ ] **Step 3.2.1:** Pull each RFC/MITRE page above and extract only the sections relevant to this project (don't dump entire RFCs — focus on SA/SP parameters for 4301, ESP header/trailer format for 4303).
-- [ ] **Step 3.2.2:** Save `man` page output for `ip-xfrm`, `ebtables`, `arptables` verbatim — these need to be exactly correct since Agent 3 compiles commands from retrieved syntax:
+- [x] **Step 3.2.1:** Pull each RFC/MITRE page above and extract only the sections relevant to this project (don't dump entire RFCs — focus on SA/SP parameters for 4301, ESP header/trailer format for 4303).
+- [x] **Step 3.2.2:** Save `man` page output for `ip-xfrm`, `ebtables`, `arptables` verbatim — these need to be exactly correct since Agent 3 compiles commands from retrieved syntax:
   ```bash
   man ip-xfrm > data/raw_docs/ip_xfrm_syntax.md
   man ebtables > data/raw_docs/ebtables_syntax.md
   man arptables > data/raw_docs/arptables_syntax.md
   ```
-- [ ] **Step 3.2.3:** Chunk any file longer than ~1500 words into logical sub-sections (one file per sub-topic) — large monolithic files hurt retrieval precision in the `static_security_docs` query step.
-- [ ] **Step 3.2.4:** Confirm all 8 required files (or their chunked equivalents) are present:
+- [x] **Step 3.2.3:** Chunk any file longer than ~1500 words into logical sub-sections (one file per sub-topic) — large monolithic files hurt retrieval precision in the `static_security_docs` query step.
+- [x] **Step 3.2.4:** Confirm all 8 required files (or their chunked equivalents) are present:
   ```bash
   ls data/raw_docs/
   ```
+  Actual Output:
+  ```
+  arptables_syntax.md
+  d3fend_countermeasures.md
+  ebtables_syntax.md
+  ip_xfrm_syntax.md
+  mitre_t1557_002_arp.md
+  mitre_t1563_002_hijack.md
+  rfc4301_ipsec_architecture.md
+  rfc4303_esp.md
+  ```
 
-**Comparison Verdict:** [ ] PASS / [ ] FAIL (loop back if any required source is missing)
+**Comparison Verdict:** [x] PASS / [ ] FAIL (loop back if any required source is missing)
 
 ---
 
@@ -155,7 +174,13 @@ print('static_security_docs count:', docs.count())
 
 Expected: `sera_ids_experiences count: 50` (or more), `static_security_docs count: 8` (or more, if chunked).
 
-**Comparison Verdict:** [ ] PASS / [ ] FAIL (loop back to Section 2 or 3 if either count is 0 or implausibly low)
+Actual Output:
+```
+sera_ids_experiences count: 50
+static_security_docs count: 42
+```
+
+**Comparison Verdict:** [x] PASS / [ ] FAIL (loop back to Section 2 or 3 if either count is 0 or implausibly low)
 
 ---
 
