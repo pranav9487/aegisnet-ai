@@ -21,11 +21,22 @@ def bootstrap_experience_rules(
     raw_rules_dir: str = "data/raw_rules",
     persist_dir: Optional[str] = None,
 ) -> int:
-    """Load all JSON experience rules and populate ChromaDB collection."""
+    """Load all JSON experience rules and populate ChromaDB collection.
+
+    Raises:
+        FileNotFoundError: If raw_rules_dir does not exist or contains no JSON files.
+    """
+    if not os.path.isdir(raw_rules_dir):
+        logger.error("Raw rules directory does not exist: %s", raw_rules_dir)
+        raise FileNotFoundError(f"Raw rules directory not found: {raw_rules_dir}")
+
     rule_files = sorted(glob.glob(os.path.join(raw_rules_dir, "*.json")))
     if not rule_files:
         logger.error("No JSON rule files found in %s", raw_rules_dir)
-        return 0
+        raise FileNotFoundError(
+            f"No JSON rule files found in {raw_rules_dir}. Pre-sourced rules are required; "
+            "rules cannot be dynamically generated."
+        )
 
     store = ExperienceStore(persist_dir=persist_dir)
     loaded_rules = []

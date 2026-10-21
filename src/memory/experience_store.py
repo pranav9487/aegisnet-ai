@@ -53,12 +53,21 @@ def validate_experience_rule(rule: Dict[str, Any]) -> None:
     Raises:
         ValueError: If any validation rule fails.
     """
+    if not isinstance(rule, dict):
+        raise ValueError("Rule must be a dictionary")
+
     missing = REQUIRED_RULE_FIELDS - set(rule.keys())
     if missing:
         raise ValueError(f"Rule missing required fields: {sorted(missing)}")
 
+    if not isinstance(rule.get("rule_id"), str) or not rule["rule_id"].strip():
+        raise ValueError("rule_id must be a non-empty string")
+
     if rule["attack_class"] not in VALID_ATTACK_CLASSES:
         raise ValueError(f"Invalid attack_class: {rule['attack_class']}")
+
+    if not isinstance(rule.get("behavior_summary"), str) or not rule["behavior_summary"].strip():
+        raise ValueError("behavior_summary must be a non-empty string")
 
     if rule["mandated_remediation"] not in VALID_REMEDIATIONS:
         raise ValueError(f"Invalid mandated_remediation: {rule['mandated_remediation']}")
@@ -74,10 +83,15 @@ def validate_experience_rule(rule: Dict[str, Any]) -> None:
         raise ValueError("symbolic_conditions must be a list")
 
     for cond in rule["symbolic_conditions"]:
+        if not isinstance(cond, dict):
+            raise ValueError("symbolic_conditions items must be dicts")
         if cond.get("field") not in VALID_CONDITION_FIELDS:
             raise ValueError(f"Invalid condition field: {cond.get('field')}")
         if cond.get("op") not in VALID_OPS:
             raise ValueError(f"Invalid condition operator: {cond.get('op')}")
+
+    if not isinstance(rule.get("forbidden_actions"), list):
+        raise ValueError("forbidden_actions must be a list")
 
     if rule["attack_class"] == "BENIGN_SPIKE" and rule["mandated_remediation"] != "MONITOR_ONLY":
         raise ValueError("BENIGN_SPIKE rules must use mandated_remediation MONITOR_ONLY")
@@ -89,11 +103,16 @@ class ExperienceStore:
     COLLECTION_NAME = "sera_ids_experiences"
     MODEL_NAME = "all-MiniLM-L6-v2"
 
-    def __init__(self, persist_dir: Optional[str] = None, client: Optional[Any] = None) -> None:
+    def __init__(
+        self,
+        persist_dir: Optional[str] = None,
+        client: Optional[Any] = None,
+        embedding_fn: Optional[Any] = None,
+    ) -> None:
         self.persist_dir = persist_dir or os.getenv("CHROMA_PERSIST_DIR", "./data/chromadb")
         os.makedirs(self.persist_dir, exist_ok=True)
 
-        self.embedding_fn = embedding_functions.SentenceTransformerEmbeddingFunction(
+        self.embedding_fn = embedding_fn or embedding_functions.SentenceTransformerEmbeddingFunction(
             model_name=self.MODEL_NAME
         )
         self.client = client or chromadb.PersistentClient(path=self.persist_dir)

@@ -245,7 +245,7 @@ tests/test_packet_engine.py::test_no_drift_without_dupacks PASSED         [100%]
 ---
 
 ### Version 0.5: Dual-Memory Knowledge Base (NetworkX GraphRAG + SERA-IDS)
-- [ ] **Version complete** (all tests below pass)
+- [x] **Version complete** (all tests below pass)
 
 **Narrative & Context**
 
@@ -260,7 +260,7 @@ Book 1 (static reference docs) and Book 2 (experience rules) are sourced per `RA
 
 **Step-by-Step Implementation Tasks**
 
-- [ ] **Step 1: Topology Graph Engine:** Create `src/memory/network_graph.py`:
+- [x] **Step 1: Topology Graph Engine:** Create `src/memory/network_graph.py`:
   - Load `data/topology_graph.json` **as-is** (read-only; do not restructure it). Its actual shape is:
     ```json
     {
@@ -287,19 +287,19 @@ Book 1 (static reference docs) and Book 2 (experience rules) are sourced per `RA
   - Implement `check_gateway_protection(target_ip, target_mac)`: reject the block proposal if **either** (a) the node at `target_ip` has `can_block_ip == False`, **or** (b) `target_mac` matches the `mac` of any node with `can_block_ip == False` — the MAC check matters because the attacker forges IPs, not MACs.
   - Implement `calculate_blast_radius(compromised_ip)`: return the set of nodes reachable by **outgoing** edges exactly 1 hop from `compromised_ip`, **excluding** edges whose `label` is `monitor` or `enforce` (these represent the defender's own instrumentation, not service dependencies).
 
-- [ ] **Step 2: ChromaDB Episodic Experience Store:** Create `src/memory/experience_store.py`:
+- [x] **Step 2: ChromaDB Episodic Experience Store:** Create `src/memory/experience_store.py`:
   - Initialize persistent ChromaDB collection `sera_ids_experiences` using `all-MiniLM-L6-v2` embeddings. (Already populated — see prerequisite note above.)
   - Enforce schema validation on insert: `rule_id`, `attack_class`, `behavior_summary`, `symbolic_conditions`, `forbidden_actions`, `mandated_remediation`, `confidence_rating`. An insert missing any required key must raise/reject — add a test proving this (not present in the original roadmap).
-- [ ] **Step 3: SERA-IDS Class-Diverse Ranker & Symbolic Verifier:** Create `src/memory/diverse_ranker.py`:
+- [x] **Step 3: SERA-IDS Class-Diverse Ranker & Symbolic Verifier:** Create `src/memory/diverse_ranker.py`:
   - Query ChromaDB with candidate pool parameter $P=20$.
   - Partition candidates by attack class: `ARP_POISON_MITM`, `TCP_SESSION_HIJACK`, `UDP_FLOOD`, `BENIGN_SPIKE` (four classes, matching the actual rule set — not three).
   - Downsample to $K=5$ distinct class representatives.
   - Execute deterministic predicate verification $\mathcal{V}(x, R_k)$ against the **actual sensor/rule field names**: `delta_arp`, `delta_seq`, `duplicate_acks`, `payload_entropy` (not `entropy` / `mac_mismatch`).
-- [ ] **Step 4: Offline Bootstrapping Script:** `src/memory/bootstrap_rules.py` reads pre-sourced content from `data/raw_rules/` (50+ rules, already present) — it does not generate rule content itself. Confirm this by inspection: the script should fail loudly if `data/raw_rules/` is empty, rather than silently falling back to inventing rules.
+- [x] **Step 4: Offline Bootstrapping Script:** `src/memory/bootstrap_rules.py` reads pre-sourced content from `data/raw_rules/` (50+ rules, already present) — it does not generate rule content itself. Confirm this by inspection: the script should fail loudly if `data/raw_rules/` is empty, rather than silently falling back to inventing rules.
 
 **Verification & Test Loop: Version 0.5**
 
-- [ ] **Step 5 (Test 2.1): Gateway Protection, Blast Radius & Self-Inflicted-DoS Prevention**
+- [x] **Step 5 (Test 2.1): Gateway Protection, Blast Radius & Self-Inflicted-DoS Prevention**
 
 Command:
 ```bash
@@ -325,11 +325,41 @@ tests/test_network_graph.py::test_blast_radius_client PASSED
 ```
 Actual Output:
 ```
-[Agent must run command and paste raw terminal output here]
-```
-**Comparison Verdict:** [ ] PASS / [ ] FAIL (Loop back if any protected node is blockable, if MAC-based rejection fails, if the attacker is not blockable, or if blast radius includes defender `monitor`/`enforce` edges)
+============================= test session starts ==============================
+platform linux -- Python 3.14.4, pytest-9.1.1, pluggy-1.7.0 -- /home/pranav/aegisnet-ai/.venv/bin/python
+cachedir: .pytest_cache
+rootdir: /home/pranav/aegisnet-ai
+plugins: asyncio-1.4.0, anyio-4.15.1, langsmith-0.14.11
+asyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collected 7 items
 
-- [ ] **Step 6 (Test 2.2): SERA-IDS Diverse Subsampling ($P=20 \to K=5$)**
+tests/test_network_graph.py::test_gateway_protection PASSED              [ 14%]
+[ASSERTION OK] Target 172.28.0.1 (GATEWAY) flagged as immutable: can_block_ip == False
+
+tests/test_network_graph.py::test_client_protection PASSED               [ 28%]
+[ASSERTION OK] Target 172.28.0.10 (CLIENT) flagged as immutable: can_block_ip == False
+
+tests/test_network_graph.py::test_server_protection PASSED               [ 42%]
+[ASSERTION OK] Target 172.28.0.20 (SERVER) flagged as immutable: can_block_ip == False
+
+tests/test_network_graph.py::test_mac_based_rejection PASSED             [ 57%]
+[ASSERTION OK] Protected MACs (02:42:ac:1c:00:0a, 02:42:ac:1c:00:14, 02:42:ac:1c:00:01) rejected even if IP spoofed
+
+tests/test_network_graph.py::test_attacker_blockable PASSED              [ 71%]
+[ASSERTION OK] 172.28.0.66 (UNTRUSTED) can_block_ip == True, block allowed
+
+tests/test_network_graph.py::test_blast_radius_attacker PASSED           [ 85%]
+[ASSERTION OK] calculate_blast_radius("172.28.0.66") == {"172.28.0.20"}
+
+tests/test_network_graph.py::test_blast_radius_client PASSED             [100%]
+[ASSERTION OK] calculate_blast_radius("172.28.0.10") == {"172.28.0.20"}
+
+
+============================== 7 passed in 0.09s ===============================
+```
+**Comparison Verdict:** [x] PASS / [ ] FAIL (Loop back if any protected node is blockable, if MAC-based rejection fails, if the attacker is not blockable, or if blast radius includes defender `monitor`/`enforce` edges)
+
+- [x] **Step 6 (Test 2.2): SERA-IDS Diverse Subsampling ($P=20 \to K=5$)**
 
 Command:
 ```bash
@@ -344,11 +374,31 @@ PASSED
 ```
 Actual Output:
 ```
-[Agent must run command and paste raw terminal output here]
-```
-**Comparison Verdict:** [ ] PASS / [ ] FAIL (Loop back if returned rules belong to only 1 attack class)
+============================= test session starts ==============================
+platform linux -- Python 3.14.4, pytest-9.1.1, pluggy-1.7.0
+rootdir: /home/pranav/aegisnet-ai
+plugins: asyncio-1.4.0, anyio-4.15.1, langsmith-0.14.11
+asyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collected 23 items / 22 deselected / 1 selected                                
 
-- [ ] **Step 7 (Test 2.3): Symbolic Condition Check $\mathcal{V}(x, R_k)$**
+tests/test_experience_store.py Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+Loading weights: 100%|█| 103
+[RETRIEVAL] Raw Candidate Pool Size: 20
+[DIVERSITY] Partitioned into distinct attack classes: {'ARP_POISON_MITM', 'TCP_SESSION_HIJACK', 'UDP_FLOOD', 'BENIGN_SPIKE'}
+[SELECTION] Final K=5 rules contain >= 3 unique attack classes.
+.
+
+=============================== warnings summary ===============================
+.venv/lib/python3.14/site-packages/chromadb/telemetry/opentelemetry/__init__.py:128
+  /home/pranav/aegisnet-ai/.venv/lib/python3.14/site-packages/chromadb/telemetry/opentelemetry/__init__.py:128: DeprecationWarning: 'asyncio.iscoroutinefunction' is deprecated and slated for removal in Python 3.16; use inspect.iscoroutinefunction() instead
+    if asyncio.iscoroutinefunction(f):
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+================= 1 passed, 22 deselected, 1 warning in 7.66s ==================
+```
+**Comparison Verdict:** [x] PASS / [ ] FAIL (Loop back if returned rules belong to only 1 attack class)
+
+- [x] **Step 7 (Test 2.3): Symbolic Condition Check $\mathcal{V}(x, R_k)$**
 
 Command:
 ```bash
@@ -362,9 +412,28 @@ test_symbolic_predicate PASSED
 ```
 Actual Output:
 ```
-[Agent must run command and paste raw terminal output here]
+============================= test session starts ==============================
+platform linux -- Python 3.14.4, pytest-9.1.1, pluggy-1.7.0 -- /home/pranav/aegisnet-ai/.venv/bin/python3
+cachedir: .pytest_cache
+rootdir: /home/pranav/aegisnet-ai
+plugins: asyncio-1.4.0, anyio-4.15.1, langsmith-0.14.11
+asyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collected 23 items / 22 deselected / 1 selected                                
+
+tests/test_experience_store.py::test_symbolic_predicate PASSED           [100%]
+[EVAL] Alert with delta_seq=50 rejected rule requiring delta_seq > 1460: V(x, Rk) == False
+[EVAL] Alert with delta_arp=1 accepted rule requiring delta_arp == 1: V(x, Rk) == True
+
+
+=============================== warnings summary ===============================
+.venv/lib/python3.14/site-packages/chromadb/telemetry/opentelemetry/__init__.py:128
+  /home/pranav/aegisnet-ai/.venv/lib/python3.14/site-packages/chromadb/telemetry/opentelemetry/__init__.py:128: DeprecationWarning: 'asyncio.iscoroutinefunction' is deprecated and slated for removal in Python 3.16; use inspect.iscoroutinefunction() instead
+    if asyncio.iscoroutinefunction(f):
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+================= 1 passed, 22 deselected, 1 warning in 0.37s ==================
 ```
-**Comparison Verdict:** [ ] PASS / [ ] FAIL (Loop back if symbolic evaluator returns True for invalid parameters)
+**Comparison Verdict:** [x] PASS / [ ] FAIL (Loop back if symbolic evaluator returns True for invalid parameters)
 
 ---
 
