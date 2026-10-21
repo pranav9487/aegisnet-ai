@@ -477,7 +477,7 @@ Chain OUTPUT (policy ACCEPT)
 - [x] **Step 3: Linux Netlink XFRM Enforcer:** Create `src/enforcer/kernel_xfrm.py`:
   - `ebtables -A INPUT -s <attacker_mac> -j DROP` and static ARP fixes (`arp -s`).
   - Provision unidirectional pairwise IPsec ESP Transport SAs/SPs via `ip xfrm` (`rfc4106(gcm(aes))`, 256-bit key).
-- [ ] **Step 4: Active Health Verification & Rollback Harness:** Create `src/enforcer/verifier.py`:
+- [x] **Step 4: Active Health Verification & Rollback Harness:** Create `src/enforcer/verifier.py`:
   - Async ICMP + TCP HTTP probe (`curl -m 1 172.28.0.20:8080`) within 500ms.
   - Rollback on >2000ms latency or packet loss:
     ```bash
@@ -578,9 +578,22 @@ tests/test_verifier.py::test_automatic_rollback PASSED
 ```
 Actual Output:
 ```
-[Agent must run command and paste raw terminal output here]
+============================= test session starts ==============================
+platform linux -- Python 3.14.4, pytest-9.1.1, pluggy-1.7.0 -- /home/pranav/aegisnet-ai/.venv/bin/python
+cachedir: .pytest_cache
+rootdir: /home/pranav/aegisnet-ai
+plugins: asyncio-1.4.0, anyio-4.15.1, langsmith-0.14.11
+asyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collected 4 items / 3 deselected / 1 selected
+
+tests/test_verifier.py::test_automatic_rollback [INJECT FAULT] Synthetic probe timeout simulated (> 2000ms)
+[ROLLBACK] Flushed XFRM states and ebtables rules
+[VERIFY CLEAN] ip xfrm state count == 0
+PASSED                   [100%]
+
+======================= 1 passed, 3 deselected in 0.35s ========================
 ```
-**Comparison Verdict:** [ ] PASS / [ ] FAIL (Loop back if XFRM states persist after simulated failure)
+**Comparison Verdict:** [x] PASS / [ ] FAIL (Loop back if XFRM states persist after simulated failure)
 
 ---
 
