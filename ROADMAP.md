@@ -563,7 +563,7 @@ src 172.28.0.10 dst 172.28.0.20
 ```
 **Comparison Verdict:** [x] PASS / [ ] FAIL (Loop back if XFRM state table is empty or cipher fails to bind)
 
-- [ ] **Step 7 (Test 3.3): Health Check Failure & Automatic Rollback**
+- [x] **Step 7 (Test 3.3): Health Check Failure & Automatic Rollback**
 
 Command:
 ```bash
@@ -584,14 +584,14 @@ cachedir: .pytest_cache
 rootdir: /home/pranav/aegisnet-ai
 plugins: asyncio-1.4.0, anyio-4.15.1, langsmith-0.14.11
 asyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
-collected 4 items / 3 deselected / 1 selected
+collecting ... collected 4 items / 3 deselected / 1 selected
 
 tests/test_verifier.py::test_automatic_rollback [INJECT FAULT] Synthetic probe timeout simulated (> 2000ms)
 [ROLLBACK] Flushed XFRM states and ebtables rules
 [VERIFY CLEAN] ip xfrm state count == 0
 PASSED                   [100%]
 
-======================= 1 passed, 3 deselected in 0.35s ========================
+======================= 1 passed, 3 deselected in 0.29s ========================
 ```
 **Comparison Verdict:** [x] PASS / [ ] FAIL (Loop back if XFRM states persist after simulated failure)
 
