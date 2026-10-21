@@ -519,7 +519,7 @@ PASSED        [100%]
 ```
 **Comparison Verdict:** [x] PASS / [ ] FAIL
 
-- [ ] **Step 6 (Test 3.2): Dynamic Linux Kernel IPsec ESP Tunnel Injection**
+- [x] **Step 6 (Test 3.2): Dynamic Linux Kernel IPsec ESP Tunnel Injection**
 
 Command:
 ```bash
