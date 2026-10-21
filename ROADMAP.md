@@ -487,7 +487,7 @@ Chain OUTPUT (policy ACCEPT)
 
 **Verification & Test Loop: Version 0.8**
 
-- [ ] **Step 5 (Test 3.1): Strict JSON Schema Policy Generation**
+- [x] **Step 5 (Test 3.1): Strict JSON Schema Policy Generation**
 
 Command:
 ```bash
@@ -508,14 +508,14 @@ cachedir: .pytest_cache
 rootdir: /home/pranav/aegisnet-ai
 plugins: asyncio-1.4.0, anyio-4.15.1, langsmith-0.14.11
 asyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
-collected 4 items / 3 deselected / 1 selected
+collecting ... collected 9 items / 8 deselected / 1 selected
 
 tests/test_orchestrator.py::test_policy_schema_conformance [SCHEMA VALID] Key 'policy_id' present
 [SCHEMA VALID] Key 'target_attacker_mac' matches MAC regex
 [SCHEMA VALID] 'ipsec_configuration.key_material_hex' length == 72 characters
-PASSED
+PASSED        [100%]
 
-======================= 1 passed, 3 deselected in 0.09s ========================
+======================= 1 passed, 8 deselected in 0.13s ========================
 ```
 **Comparison Verdict:** [x] PASS / [ ] FAIL
 
