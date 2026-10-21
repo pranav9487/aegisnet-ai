@@ -451,13 +451,17 @@ Before writing any orchestrator code, confirm the kernel supports the operations
 docker exec blue-ai-defender sh -c "ip xfrm state count && ebtables -L && arptables -L"
 ```
 Expected Output: all three commands return without error (counts/empty lists are fine; "not found", permission errors, or missing kernel module errors are not).
-Actual Output:
+Actual Output (run via `wsl.exe -e docker exec blue-ai-defender sh -c "ip xfrm state count && ebtables -L && arptables -L"`, exit code 0):
 ```
-Could not run — Docker CLI is not integrated with this WSL2 distro
-(socket lives on Windows Named Pipe: npipe:////./pipe/dockerDesktopLinuxEngine).
-Run manually from a WSL terminal that has Docker Desktop WSL integration enabled.
+         SAD count 0
+Bridge table: filter
+
+Bridge chain: INPUT, entries: 0, policy: ACCEPT
+Chain INPUT (policy ACCEPT)
+Bridge chain: OUTPUT, entries: 0, policy: ACCEPT
+Chain OUTPUT (policy ACCEPT)
 ```
-**Comparison Verdict:** [ ] PASS / [ ] FAIL (Do NOT proceed to Step 1 below on FAIL — resolve kernel/module support first)
+**Comparison Verdict:** [x] PASS / [ ] FAIL (Do NOT proceed to Step 1 below on FAIL — resolve kernel/module support first)
 
 **Step-by-Step Implementation Tasks**
 
