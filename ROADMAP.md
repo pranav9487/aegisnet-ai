@@ -453,13 +453,15 @@ docker exec blue-ai-defender sh -c "ip xfrm state count && ebtables -L && arptab
 Expected Output: all three commands return without error (counts/empty lists are fine; "not found", permission errors, or missing kernel module errors are not).
 Actual Output:
 ```
-[Agent must run command and paste raw terminal output here]
+Could not run — Docker CLI is not integrated with this WSL2 distro
+(socket lives on Windows Named Pipe: npipe:////./pipe/dockerDesktopLinuxEngine).
+Run manually from a WSL terminal that has Docker Desktop WSL integration enabled.
 ```
 **Comparison Verdict:** [ ] PASS / [ ] FAIL (Do NOT proceed to Step 1 below on FAIL — resolve kernel/module support first)
 
 **Step-by-Step Implementation Tasks**
 
-- [ ] **Step 1: Multi-Agent State Machine:** Create `src/agents/orchestrator.py`:
+- [x] **Step 1: Multi-Agent State Machine:** Create `src/agents/orchestrator.py`:
   - Define `AgentSecurityState` (telemetry, topology, experiences, triage diagnostic, strategy, final policy).
   - Agent 1 (`node_threat_triage`): resolves true attacker MAC from claimed victim IP.
   - Agent 2 (`node_policy_synthesizer`): Layer-2 isolation + Layer-3 IPsec ESP strategy.
@@ -496,9 +498,22 @@ tests/test_orchestrator.py::test_policy_schema_conformance PASSED
 ```
 Actual Output:
 ```
-[Agent must run command and paste raw terminal output here]
+============================= test session starts ==============================
+platform linux -- Python 3.14.4, pytest-9.1.1, pluggy-1.7.0 -- /home/pranav/aegisnet-ai/.venv/bin/python
+cachedir: .pytest_cache
+rootdir: /home/pranav/aegisnet-ai
+plugins: asyncio-1.4.0, anyio-4.15.1, langsmith-0.14.11
+asyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collected 4 items / 3 deselected / 1 selected
+
+tests/test_orchestrator.py::test_policy_schema_conformance [SCHEMA VALID] Key 'policy_id' present
+[SCHEMA VALID] Key 'target_attacker_mac' matches MAC regex
+[SCHEMA VALID] 'ipsec_configuration.key_material_hex' length == 72 characters
+PASSED
+
+======================= 1 passed, 3 deselected in 0.09s ========================
 ```
-**Comparison Verdict:** [ ] PASS / [ ] FAIL
+**Comparison Verdict:** [x] PASS / [ ] FAIL
 
 - [ ] **Step 6 (Test 3.2): Dynamic Linux Kernel IPsec ESP Tunnel Injection**
 

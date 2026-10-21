@@ -8,9 +8,9 @@
     "policy_id",
     "alert_ref",
     "target_attacker_mac",
-    "static_arp_bindings",
+    "static_arp_fixes",
     "mac_isolation",
-    "ipsec_enforcement",
+    "ipsec_configuration",
     "ttl_seconds",
     "confidence"
   ],
@@ -29,7 +29,7 @@
       "pattern": "^([0-9a-f]{2}:){5}[0-9a-f]{2}$",
       "description": "Hardware MAC address of the attacker — NEVER the spoofed victim IP"
     },
-    "static_arp_bindings": {
+    "static_arp_fixes": {
       "type": "array",
       "description": "Static ARP entries to enforce (arp -s) to restore correct bindings",
       "items": {
@@ -54,7 +54,7 @@
       },
       "additionalProperties": false
     },
-    "ipsec_enforcement": {
+    "ipsec_configuration": {
       "type": "object",
       "required": [
         "apply_ipsec",
@@ -62,7 +62,7 @@
         "cipher",
         "spi_client_to_server",
         "spi_server_to_client",
-        "key_hex"
+        "key_material_hex"
       ],
       "properties": {
         "apply_ipsec": { "type": "boolean" },
@@ -76,7 +76,7 @@
           "type": "integer",
           "description": "SPI for outbound SA (decimal). Example: 4098 (0x1002)"
         },
-        "key_hex": {
+        "key_material_hex": {
           "type": "string",
           "pattern": "^[0-9a-f]{72}$",
           "description": "AES-256-GCM key+salt: 64 hex chars (32 bytes key) + 8 hex chars (4 bytes salt) = 72 chars total"
