@@ -40,7 +40,12 @@ from src.agents.orchestrator import (
     node_policy_synthesizer,
     node_threat_triage,
 )
-from src.agents.validator import validate_policy, load_schema
+from src.agents.validator import (
+    load_schema,
+    validate_policy,
+    validate_with_retry,
+    llm_call_with_fallback,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -185,13 +190,11 @@ def test_policy_schema_conformance(capsys):
     # (1) policy_id
     policy_id = policy.get("policy_id", "")
     assert policy_id, "policy_id must be present and non-empty"
-    print(f"[SCHEMA VALID] Key 'policy_id' present")
 
     # (2) target_attacker_mac matches MAC regex
     mac = policy.get("target_attacker_mac", "")
     mac_re = re.compile(r"^([0-9a-f]{2}:){5}[0-9a-f]{2}$")
     assert mac_re.match(mac), f"target_attacker_mac {mac!r} must match MAC regex"
-    print(f"[SCHEMA VALID] Key 'target_attacker_mac' matches MAC regex")
 
     # (3) key_material_hex length == 72
     ipsec = policy.get("ipsec_configuration", {})
@@ -202,7 +205,11 @@ def test_policy_schema_conformance(capsys):
     assert re.fullmatch(r"[0-9a-f]{72}", key_hex), (
         "key_material_hex must be 72 lowercase hex characters"
     )
-    print(f"[SCHEMA VALID] 'ipsec_configuration.key_material_hex' length == 72 characters")
+
+    with capsys.disabled():
+        print(f"[SCHEMA VALID] Key 'policy_id' present")
+        print(f"[SCHEMA VALID] Key 'target_attacker_mac' matches MAC regex")
+        print(f"[SCHEMA VALID] 'ipsec_configuration.key_material_hex' length == 72 characters")
 
     # Additional safety assertions
     assert policy.get("target_attacker_mac") == "02:42:ac:1c:00:42", (
@@ -274,3 +281,96 @@ def test_attacker_mac_never_overwritten_by_llm():
     assert final_mac == "02:42:ac:1c:00:42", (
         f"Attacker MAC must not be overridden by LLM; got {final_mac!r}"
     )
+
+
+# ---------------------------------------------------------------------------
+# Step 2: Validator & Fallback Router unit tests
+# ---------------------------------------------------------------------------
+
+def test_validator_catches_invalid_schema():
+    """Missing required fields must raise ValidationError."""
+    import jsonschema
+    schema = load_schema()
+    bad_policy = {"policy_id": "POL-123"}
+    with pytest.raises(jsonschema.ValidationError):
+        validate_policy(bad_policy, schema)
+
+
+def test_validator_catches_forbidden_commands():
+    """Policies containing forbidden command patterns must raise ValueError."""
+    schema = load_schema()
+    policy = _make_deterministic_policy()
+    policy["alert_ref"] = "ALERT-iptables -F"
+    with pytest.raises(ValueError, match="Forbidden command pattern detected"):
+        validate_policy(policy, schema)
+
+
+def test_validator_provider_fallback():
+    """llm_call_with_fallback falls back from primary (Groq) to secondary (Gemini)."""
+    # 1. Primary provider succeeds
+    providers = [
+        ("groq", lambda p, s: "response from groq"),
+        ("gemini", lambda p, s: "response from gemini"),
+    ]
+    resp, prov = llm_call_with_fallback("hi", "sys", providers=providers)
+    assert prov == "groq"
+    assert resp == "response from groq"
+
+    # 2. Primary fails, fallback succeeds
+    def _failing_groq(p, s):
+        raise ConnectionError("Groq timeout")
+
+    providers_fallback = [
+        ("groq", _failing_groq),
+        ("gemini", lambda p, s: "response from gemini"),
+    ]
+    resp, prov = llm_call_with_fallback("hi", "sys", providers=providers_fallback)
+    assert prov == "gemini"
+    assert resp == "response from gemini"
+
+    # 3. All providers fail -> raises RuntimeError
+    def _failing_gemini(p, s):
+        raise ValueError("Gemini quota exhausted")
+
+    providers_all_fail = [
+        ("groq", _failing_groq),
+        ("gemini", _failing_gemini),
+    ]
+    with pytest.raises(RuntimeError, match="All LLM providers exhausted"):
+        llm_call_with_fallback("hi", "sys", providers=providers_all_fail)
+
+
+def test_validator_retry_loop_success():
+    """validate_with_retry succeeds on retry when first attempt fails schema validation."""
+    schema = load_schema()
+    attempts = 0
+
+    def generator(prior_error):
+        nonlocal attempts
+        attempts += 1
+        if attempts == 1:
+            # First attempt: invalid MAC format
+            p = _make_deterministic_policy()
+            p["target_attacker_mac"] = "not-a-mac"
+            return p
+        # Second attempt: generator receives prior error context and returns valid policy
+        assert prior_error is not None
+        assert "not-a-mac" in prior_error
+        return _make_deterministic_policy()
+
+    result = validate_with_retry(generator, schema=schema, max_attempts=2)
+    assert attempts == 2
+    assert result["target_attacker_mac"] == "02:42:ac:1c:00:42"
+
+
+def test_validator_retry_loop_exhausted():
+    """validate_with_retry raises ValueError if max_attempts is exceeded without valid policy."""
+    schema = load_schema()
+
+    def generator(prior_error):
+        p = _make_deterministic_policy()
+        p["target_attacker_mac"] = "bad-mac"
+        return p
+
+    with pytest.raises(ValueError, match="Policy failed validation after 2 attempt"):
+        validate_with_retry(generator, schema=schema, max_attempts=2)

@@ -113,17 +113,18 @@ def _call_gemini(prompt: str, system: str) -> str:
 
 
 def _llm_call_with_fallback(prompt: str, system: str) -> tuple[str, str]:
-    """Try Groq first; fall back to Gemini. Returns (text, provider_name)."""
-    try:
-        text = _call_groq(prompt, system)
-        logger.info("LLM response from Groq (len=%d)", len(text))
-        return text, "groq"
-    except Exception as exc:
-        logger.warning("Groq failed (%s), falling back to Gemini", exc)
+    """Try Groq first; fall back to Gemini. Returns (text, provider_name).
 
-    text = _call_gemini(prompt, system)
-    logger.info("LLM response from Gemini (len=%d)", len(text))
-    return text, "gemini"
+    Delegates to validator.llm_call_with_fallback using local _call_groq /
+    _call_gemini wrappers so unit-test mocks on those symbols still work.
+    """
+    from src.agents.validator import llm_call_with_fallback as _router
+
+    providers = [
+        ("groq", lambda p, s: _call_groq(p, s)),
+        ("gemini", lambda p, s: _call_gemini(p, s)),
+    ]
+    return _router(prompt, system, providers=providers)
 
 
 def _extract_json_from_response(text: str) -> Dict[str, Any]:
@@ -617,7 +618,7 @@ class AegisNetOrchestrator:
         Raises:
             ValueError: If the final policy fails schema validation after 2 attempts.
         """
-        from src.agents.validator import validate_policy  # import here to avoid circulars
+        from src.agents.validator import validate_with_retry  # avoid circular at module level
 
         initial_state: AgentSecurityState = {
             "telemetry": telemetry,
@@ -631,36 +632,20 @@ class AegisNetOrchestrator:
             "error_log": [],
         }
 
-        max_attempts = 2
-        last_error: Optional[Exception] = None
-
-        for attempt in range(1, max_attempts + 1):
-            logger.info("Orchestrator attempt %d/%d", attempt, max_attempts)
-            initial_state["attempt_count"] = attempt
+        def _generate(prior_error: Optional[str]) -> Dict[str, Any]:
+            """Run the LangGraph pipeline once and return the raw policy dict."""
+            if prior_error:
+                initial_state["error_log"] = initial_state.get("error_log", []) + [prior_error]
+            initial_state["attempt_count"] = initial_state.get("attempt_count", 0) + 1
 
             result = self._graph.invoke(initial_state)
             policy = result.get("final_policy")
-
             if policy is None:
-                last_error = ValueError("Pipeline produced no final_policy")
-                logger.warning("Attempt %d: no policy produced", attempt)
-                continue
+                raise ValueError("Pipeline produced no final_policy")
+            return policy
 
-            try:
-                validate_policy(policy, self._schema)
-                logger.info(
-                    "Policy validated on attempt %d: %s",
-                    attempt,
-                    policy.get("policy_id"),
-                )
-                return policy
-            except Exception as exc:
-                last_error = exc
-                logger.warning("Attempt %d schema validation failed: %s", attempt, exc)
-                # Pass error context to next attempt via state
-                initial_state["error_log"] = result.get("error_log", []) + [str(exc)]
-
-        raise ValueError(
-            f"Policy failed schema validation after {max_attempts} attempts. "
-            f"Last error: {last_error}"
+        return validate_with_retry(
+            policy_generator=_generate,
+            schema=self._schema,
+            max_attempts=2,
         )

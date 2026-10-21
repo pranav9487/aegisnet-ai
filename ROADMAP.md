@@ -470,7 +470,7 @@ Chain OUTPUT (policy ACCEPT)
   - Agent 1 (`node_threat_triage`): resolves true attacker MAC from claimed victim IP.
   - Agent 2 (`node_policy_synthesizer`): Layer-2 isolation + Layer-3 IPsec ESP strategy.
   - Agent 3 (`node_command_compiler`): emits JSON conforming to `AegisNetDefensePolicy-v1`.
-- [ ] **Step 2: Schema Validation & Fallback Router:** Create `src/agents/validator.py`:
+- [x] **Step 2: Schema Validation & Fallback Router:** Create `src/agents/validator.py`:
   - Validate against `AegisNetDefensePolicy-v1.json`. **Use one consistent set of key names across the schema file, the code, and the tests** — `static_arp_fixes` / `ipsec_configuration` (matching Test 3.1 below), not the older `static_arp_bindings` / `ipsec_enforcement` names from the original project details doc.
   - Retry loop (max 2 attempts) on schema validation failure.
   - Multi-provider fallback: Groq API → Gemini Flash.
