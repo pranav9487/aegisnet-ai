@@ -474,7 +474,7 @@ Chain OUTPUT (policy ACCEPT)
   - Validate against `AegisNetDefensePolicy-v1.json`. **Use one consistent set of key names across the schema file, the code, and the tests** — `static_arp_fixes` / `ipsec_configuration` (matching Test 3.1 below), not the older `static_arp_bindings` / `ipsec_enforcement` names from the original project details doc.
   - Retry loop (max 2 attempts) on schema validation failure.
   - Multi-provider fallback: Groq API → Gemini Flash.
-- [ ] **Step 3: Linux Netlink XFRM Enforcer:** Create `src/enforcer/kernel_xfrm.py`:
+- [x] **Step 3: Linux Netlink XFRM Enforcer:** Create `src/enforcer/kernel_xfrm.py`:
   - `ebtables -A INPUT -s <attacker_mac> -j DROP` and static ARP fixes (`arp -s`).
   - Provision unidirectional pairwise IPsec ESP Transport SAs/SPs via `ip xfrm` (`rfc4106(gcm(aes))`, 256-bit key).
 - [ ] **Step 4: Active Health Verification & Rollback Harness:** Create `src/enforcer/verifier.py`:
@@ -554,9 +554,14 @@ src 172.28.0.20 dst 172.28.0.10
 ```
 Actual Output:
 ```
-[Agent must run command and paste raw terminal output here]
+src 172.28.0.20 dst 172.28.0.10
+        proto esp spi 0x00001002 reqid 0 mode transport
+        aead rfc4106(gcm(aes)) 0x0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef12345678 128
+src 172.28.0.10 dst 172.28.0.20
+        proto esp spi 0x00001001 reqid 0 mode transport
+        aead rfc4106(gcm(aes)) 0x0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef12345678 128
 ```
-**Comparison Verdict:** [ ] PASS / [ ] FAIL (Loop back if XFRM state table is empty or cipher fails to bind)
+**Comparison Verdict:** [x] PASS / [ ] FAIL (Loop back if XFRM state table is empty or cipher fails to bind)
 
 - [ ] **Step 7 (Test 3.3): Health Check Failure & Automatic Rollback**
 
