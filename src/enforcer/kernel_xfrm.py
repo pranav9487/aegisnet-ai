@@ -115,6 +115,7 @@ class KernelEnforcementEngine:
         args: List[str],
         check: bool = True,
         ignore_errors: bool = False,
+        timeout: float = 3.0,
     ) -> subprocess.CompletedProcess[str]:
         """Execute a kernel command using argument list (never shell=True)."""
         logger.debug("Executing kernel command: %s", " ".join(args))
@@ -124,8 +125,14 @@ class KernelEnforcementEngine:
                 capture_output=True,
                 text=True,
                 check=check,
+                timeout=timeout,
             )
             return res
+        except subprocess.TimeoutExpired as exc:
+            logger.warning("Command timed out after %ss: %s", timeout, " ".join(args))
+            if ignore_errors:
+                return subprocess.CompletedProcess(args, returncode=124, stdout="", stderr=str(exc))
+            raise
         except subprocess.CalledProcessError as exc:
             if ignore_errors:
                 logger.debug(
@@ -192,14 +199,14 @@ class KernelEnforcementEngine:
 
         # 1. ebtables (L2 bridge frame drop)
         try:
-            self._run_cmd(["ebtables", "-A", "INPUT", "-s", attacker_mac, "-j", "DROP"], check=True)
+            self._run_cmd(["ebtables", "-A", "INPUT", "-s", attacker_mac, "-j", "DROP"], check=True, timeout=2.0)
             logger.info("[ISOLATE] ebtables rule added for %s", attacker_mac)
         except Exception as exc:
             logger.warning("[ISOLATE] ebtables rule could not be added (%s); using arptables+iptables", exc)
 
         # 2. arptables (L2 ARP poisoning prevention)
         try:
-            self._run_cmd(["arptables", "-A", "INPUT", "--src-mac", attacker_mac, "-j", "DROP"], check=True)
+            self._run_cmd(["arptables", "-A", "INPUT", "--src-mac", attacker_mac, "-j", "DROP"], check=True, timeout=2.0)
             logger.info("[ISOLATE] arptables rule added for %s", attacker_mac)
         except Exception as exc:
             logger.warning("[ISOLATE] arptables rule addition failed: %s", exc)
@@ -209,6 +216,7 @@ class KernelEnforcementEngine:
             self._run_cmd(
                 ["iptables", "-A", "INPUT", "-m", "mac", "--mac-source", attacker_mac, "-j", "DROP"],
                 check=True,
+                timeout=2.0,
             )
             logger.info("[ISOLATE] iptables MAC match rule added for %s", attacker_mac)
         except Exception as exc:
@@ -341,12 +349,12 @@ class KernelEnforcementEngine:
         logger.warning("[ROLLBACK] Initiating atomic rollback of all kernel enforcements")
 
         # 1. Flush XFRM state & policy
-        self._run_cmd(["ip", "xfrm", "state", "flush"], ignore_errors=True, check=False)
-        self._run_cmd(["ip", "xfrm", "policy", "flush"], ignore_errors=True, check=False)
+        self._run_cmd(["ip", "xfrm", "state", "flush"], ignore_errors=True, check=False, timeout=2.0)
+        self._run_cmd(["ip", "xfrm", "policy", "flush"], ignore_errors=True, check=False, timeout=2.0)
 
         # 2. Flush ebtables & arptables
-        self._run_cmd(["ebtables", "-F"], ignore_errors=True, check=False)
-        self._run_cmd(["arptables", "-F"], ignore_errors=True, check=False)
+        self._run_cmd(["ebtables", "-F"], ignore_errors=True, check=False, timeout=2.0)
+        self._run_cmd(["arptables", "-F"], ignore_errors=True, check=False, timeout=2.0)
 
         # 3. Clean up any iptables MAC drop rules applied
         for policy in self._active_policies.values():
@@ -356,6 +364,7 @@ class KernelEnforcementEngine:
                     ["iptables", "-D", "INPUT", "-m", "mac", "--mac-source", mac, "-j", "DROP"],
                     ignore_errors=True,
                     check=False,
+                    timeout=2.0,
                 )
 
         self._active_policies.clear()
